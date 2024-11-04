@@ -1,0 +1,342 @@
+﻿-- Tạo cơ sở dữ liệu THCSDL2_NHOM1
+CREATE DATABASE THCSDL;
+GO
+
+-- Sử dụng cơ sở dữ liệu vừa tạo
+USE THCSDL;
+GO
+
+-- Tạo bảng KHACHHANG
+CREATE TABLE KHACHHANG (
+    MAKHACHHANG CHAR(8) PRIMARY KEY,
+    TENCONGTY NVARCHAR(100) NOT NULL,
+    TENGIAODICH NVARCHAR(100) NOT NULL,
+    DIACHI NVARCHAR(100) NOT NULL,
+    EMAIL VARCHAR(50) NOT NULL UNIQUE,
+    DIENTHOAI VARCHAR(11) NOT NULL,
+    FAX VARCHAR(10) NULL,
+    CONSTRAINT CK_SDT_1 CHECK(DIENTHOAI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' 
+                            OR DIENTHOAI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
+);
+
+-- Tạo bảng NHANVIEN
+CREATE TABLE NHANVIEN (
+    MANHANVIEN CHAR(8) PRIMARY KEY,
+    HO NVARCHAR(10) NOT NULL,
+    TEN NVARCHAR(40) NOT NULL,
+    NGAYSINH DATE,
+    NGAYLAMVIEC DATE,
+    DIACHI NVARCHAR(100) NOT NULL,
+    DIENTHOAI VARCHAR(11) NOT NULL UNIQUE,
+    LUONGCOBAN DECIMAL(20, 2) CHECK (LUONGCOBAN >= 0),
+    PHUCAP DECIMAL(20, 2) CHECK (PHUCAP >= 0),
+    CONSTRAINT CK_SDT_2 CHECK(DIENTHOAI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' 
+                            OR DIENTHOAI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
+);
+
+-- Tạo bảng DONDATHANG
+CREATE TABLE DONDATHANG (
+    SOHOADON CHAR(8) PRIMARY KEY,
+    KHACHHANG_NO CHAR(8) NOT NULL,
+    NHANVIEN_NO CHAR(8) NOT NULL,
+    NGAYDATHANG DATE,
+    NGAYGIAOHANG DATE,
+    NGAYCHUYENHANG DATE,
+    NOIGIAOHANG NVARCHAR(100),
+    CONSTRAINT FK_KHACHHANG_NO_3 FOREIGN KEY (KHACHHANG_NO) REFERENCES KHACHHANG(MAKHACHHANG)
+                                ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT FK_NHANVIEN_NO_3 FOREIGN KEY (NHANVIEN_NO) REFERENCES NHANVIEN(MANHANVIEN)
+                                ON UPDATE CASCADE ON DELETE CASCADE
+);
+GO
+
+-- Tạo bảng NHACUNGCAP
+CREATE TABLE NHACUNGCAP (
+    MACONGTY CHAR(8) PRIMARY KEY,
+    TENCONGTY NVARCHAR(100) NOT NULL,
+    TENGIAODICH VARCHAR(50) NOT NULL,
+    DIACHI NVARCHAR(100),
+    DIENTHOAI VARCHAR(11) NOT NULL UNIQUE,
+    FAX VARCHAR(10),
+    EMAIL VARCHAR(50) UNIQUE
+);
+
+-- Tạo bảng LOAIHANG
+CREATE TABLE LOAIHANG (
+    MALOAIHANG CHAR(8) PRIMARY KEY,
+    TENLOAIHANG NVARCHAR(100) NOT NULL
+);
+
+-- Tạo bảng MATHANG
+CREATE TABLE MATHANG (
+    MAHANG CHAR(8) PRIMARY KEY,
+    TENHANG NVARCHAR(100) NOT NULL,
+    CONGTY_NO CHAR(8) NOT NULL,
+    LOAIHANG_NO CHAR(8) NOT NULL,
+    SOLUONG FLOAT CHECK(SOLUONG >= 0),
+    DONVITINH NVARCHAR(100),
+    GIAHANG DECIMAL(20, 2) CHECK(GIAHANG >= 0),
+    CONSTRAINT FK_CONGTY_NO_6 FOREIGN KEY (CONGTY_NO) REFERENCES NHACUNGCAP(MACONGTY)
+                              ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT FK_LOAIHANG_NO_6 FOREIGN KEY (LOAIHANG_NO) REFERENCES LOAIHANG(MALOAIHANG)
+                                ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+-- Tạo bảng CHITIETDATHANG
+CREATE TABLE CHITIETDATHANG (
+    SOHOADON CHAR(8) NOT NULL,
+    MAHANG CHAR(8) NOT NULL,
+    GIABAN DECIMAL(20, 2),
+    SOLUONG FLOAT,
+    MUCGIAMGIA DECIMAL(5,2),
+    CONSTRAINT PK_SHD_MH_7 PRIMARY KEY (SOHOADON, MAHANG),
+    CONSTRAINT FK_SOHOADON_7 FOREIGN KEY (SOHOADON) REFERENCES DONDATHANG(SOHOADON)
+                             ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT FK_MAHANG_7 FOREIGN KEY (MAHANG) REFERENCES MATHANG(MAHANG)
+                           ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+-- Ràng buộc địa chỉ đa trị -> đơn trị
+GO
+
+-- Thêm bảng Quốc Gia
+CREATE TABLE QUOCGIA (
+    MAQG CHAR(10) PRIMARY KEY,
+    TENQG NVARCHAR(100)
+);
+
+-- Thêm bảng Thành Phố
+CREATE TABLE THANHPHO (
+    MATP CHAR(10) PRIMARY KEY,
+    TENTP NVARCHAR(100),
+    MAQG CHAR(10),
+    FOREIGN KEY (MAQG) REFERENCES QUOCGIA(MAQG)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+-- Thêm bảng Quận Huyện
+CREATE TABLE QUANHUYEN (
+    MAQH CHAR(10) PRIMARY KEY,
+    TENQH NVARCHAR(100),
+    MATP CHAR(10),
+    FOREIGN KEY (MATP) REFERENCES THANHPHO(MATP)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+-- Thêm bảng Phường Xã
+CREATE TABLE PHUONGXA (
+    MAPX CHAR(10) PRIMARY KEY,
+    TENPX NVARCHAR(100),
+    MAQH CHAR(10),
+    FOREIGN KEY (MAQH) REFERENCES QUANHUYEN(MAQH)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+-- Tách cột địa chỉ bảng KHACHHANG thành 2 cột
+ALTER TABLE KHACHHANG
+DROP COLUMN DIACHI;
+ALTER TABLE KHACHHANG
+ADD MAPX CHAR(10),
+    SONHATENDUONG NVARCHAR(100);
+ALTER TABLE KHACHHANG
+ADD CONSTRAINT FK_KHACHHANG_MAPX 
+    FOREIGN KEY (MAPX) REFERENCES PHUONGXA(MAPX)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE;
+
+-- Tách cột địa chỉ bảng NHACUNGCAP thành 2 cột
+ALTER TABLE NHACUNGCAP
+DROP COLUMN DIACHI;
+ALTER TABLE NHACUNGCAP
+ADD MAPX CHAR(10),
+    SONHATENDUONG NVARCHAR(100);
+ALTER TABLE NHACUNGCAP
+ADD CONSTRAINT FK_NHACUNGCAP_MAPX 
+    FOREIGN KEY (MAPX) REFERENCES PHUONGXA(MAPX)
+        ON DELETE NO ACTION
+        ON UPDATE NO ACTION;
+
+-- Tách cột địa chỉ bảng DONDATHANG thành 2 cột
+ALTER TABLE DONDATHANG
+DROP COLUMN NOIGIAOHANG;
+ALTER TABLE DONDATHANG
+ADD MAPX CHAR(10),
+    DIACHICUTHE NVARCHAR(100);
+ALTER TABLE DONDATHANG
+ADD CONSTRAINT FK_DONDATHANG_MAPX 
+    FOREIGN KEY (MAPX) REFERENCES PHUONGXA(MAPX)
+        ON DELETE NO ACTION
+        ON UPDATE NO ACTION;
+
+-- Câu2
+
+-- Thiết lập giá trị mặc định bằng 1 cho cột SOLUONG
+ALTER TABLE CHITIETDATHANG
+	ADD CONSTRAINT DF_SOLUONG DEFAULT 1 FOR SOLUONG;
+
+-- Thiết lập giá trị mặc định bằng 0 cho cột MUCGIAMGIA
+ALTER TABLE CHITIETDATHANG
+	ADD CONSTRAINT DF_MUCGIAMGIA DEFAULT 0 FOR MUCGIAMGIA;
+
+-- Câu3
+
+--Bổ sung cho bảng DONDATHANG ràng buộc kiểm tra ngày giao hàng và ngày chuyển hàng phải sau hoặc bằng với ngày đặt hàng. 
+ALTER TABLE DONDATHANG
+	ADD CONSTRAINT CK_NGAY CHECK (NGAYGIAOHANG >= NGAYDATHANG AND NGAYCHUYENHANG >= NGAYGIAOHANG);
+
+-- Câu4
+
+--Bổ sung ràng buộc cho bảng NHANVIEN để đảm bảo rằng một nhân viên chỉ có thể làm việc trong công ty khi đủ 18 tuổi 
+	--và không quá 60 tuổi.
+ALTER TABLE NHANVIEN
+	ADD CONSTRAINT CK_TUOI 
+	CHECK (DATEDIFF(YEAR, NGAYSINH, NGAYLAMVIEC) >= 18 AND DATEDIFF(YEAR, NGAYSINH, NGAYLAMVIEC) <= 60);
+
+--TUẦN 7
+-- Thêm dữ liệu vào bảng KHACHHANG
+INSERT INTO QUOCGIA (MAQG, TENQG) 
+VALUES 
+    ('VN', N'Việt Nam'),
+    ('US', N'Hoa Kỳ'),
+    ('JP', N'Nhật Bản'),
+    ('KR', N'Hàn Quốc'),
+    ('CN', N'Trung Quốc'),
+    ('FR', N'Pháp'),
+    ('DE', N'Đức'),
+    ('IT', N'Ý'),
+    ('GB', N'Vương Quốc Anh'),
+    ('RU', N'Nga');
+--thêm thông tin vào bảng THANHPHO
+INSERT INTO THANHPHO (MATP, TENTP, MAQG) 
+VALUES 
+    ('TP001', N'Hà Nội', 'VN'),
+    ('TP002', N'TP Hồ Chí Minh', 'VN'),
+    ('TP003', N'Đà Nẵng', 'VN'),
+    ('TP004', N'Hải Phòng', 'VN'),
+    ('TP005', N'New York', 'US'),
+    ('TP006', N'Los Angeles', 'US'),
+    ('TP007', N'Tokyo', 'JP'),
+    ('TP008', N'Seoul', 'KR'),
+    ('TP009', N'Bắc Kinh', 'CN'),
+    ('TP010', N'Paris', 'FR');
+--thêm thông tin vào bảng QUANHUYEN
+INSERT INTO QUANHUYEN (MAQH, TENQH, MATP) 
+VALUES 
+    ('QH001', N'Hà Đông', 'TP001'),
+    ('QH002', N'Tây Hồ', 'TP001'),
+    ('QH003', N'Quận 1', 'TP002'),
+    ('QH004', N'Quận 2', 'TP002'),
+    ('QH005', N'Hải Châu', 'TP003'),
+    ('QH006', N'Sơn Trà', 'TP003'),
+    ('QH007', N'Dongdaemun', 'TP007'), 
+    ('QH008', N'Chiyoda', 'TP007'),    
+    ('QH009', N'Chaoyang', 'TP009'),  
+    ('QH010', N'Quận 12', 'TP002');
+--thêm thông tin vào bảng PHUONGXA
+INSERT INTO PHUONGXA (MAPX, TENPX, MAQH) 
+VALUES 
+    ('PX001', N'Phường Mộ Lao', 'QH001'), 
+    ('PX002', N'Phường Văn Quán', 'QH001'),
+    ('PX003', N'Phường Bến Nghé', 'QH003'), 
+    ('PX004', N'Phường Nguyễn Thái Bình', 'QH003'),
+    ('PX005', N'Phường Hải Châu 1', 'QH005'),
+    ('PX006', N'Phường An Hải Bắc', 'QH006'),
+    ('PX007', N'Phường Jongno 1', 'QH007'),   
+    ('PX008', N'Phường Chiyoda', 'QH008'),    
+    ('PX009', N'Phường Chaoyang', 'QH009'),     
+    ('PX010', N'Phường Thạnh Lộc', 'QH010');
+	SET DATEFORMAT dmy;
+--thêm dữ liệu vào bảng LOAIHANG
+INSERT INTO LOAIHANG (MALOAIHANG, TENLOAIHANG) 
+VALUES 
+    ('LH001', N'Hàng điện tử'),
+    ('LH002', N'Hàng tiêu dùng'),
+    ('LH003', N'Hàng thực phẩm'),
+    ('LH004', N'Hàng may mặc'),
+    ('LH005', N'Hàng gia dụng'),
+    ('LH006', N'Hàng thể thao'),
+    ('LH007', N'Hàng văn phòng'),
+    ('LH008', N'Hàng trang sức'),
+    ('LH009', N'Hàng công nghiệp'),
+    ('LH010', N'Hàng nội thất');
+--thêm dữ liệu vào bảng NHACUNGCAP
+INSERT INTO NHACUNGCAP (MACONGTY, TENCONGTY, TENGIAODICH, DIENTHOAI, FAX, EMAIL, MAPX) 
+VALUES 
+    ('CC001', N'Công Ty ABC', N'Nguyễn Văn A', '0123456789', '0241234567', 'nguyenvana@abc.com', 'PX001'),
+    ('CC002', N'Công Ty DEF', N'Trần Thị B', '0987654321', '0287654321', 'tranthib@def.com', 'PX002'),
+    ('CC003', N'Công Ty GHI', N'Lê Văn C', '0912345678', '0223456789', 'levanc@ghi.com', 'PX003'),
+    ('CC004', N'Công Ty JKL', N'Phạm Thị D', '0934567890', '0234567890', 'phamthid@jkl.com', 'PX004'),
+    ('CC005', N'Công Ty MNO', N'Vũ Văn E', '0945678901', '0212345678', 'vuvane@mno.com', 'PX005'),
+    ('CC006', N'Công Ty PQR', N'Đỗ Quang F', '0956789012', '0256789012', 'doquangf@pqr.com', 'PX006'),
+    ('CC007', N'Công Ty STU', N'Hồ Thị G', '0967890123', '0267890123', 'hothig@stu.com', 'PX007'),
+    ('CC008', N'Công Ty VWX', N'Trương Như H', '0978901234', '0278901234', 'truongnhuh@vwx.com', 'PX008'),
+    ('CC009', N'Công Ty YZA', N'Tô Việt I', '0989012345', '0289012345', 'tovieti@yza.com', 'PX009'),
+    ('CC010', N'Công Ty BCD', N'Ngô Thảo J', '0990123456', '0290123456', 'gothaoj@bcd.com', 'PX010');
+--thêm thông tin vào bảng MATHANG
+INSERT INTO MATHANG (MAHANG, TENHANG, MACONGTY, MALOAIHANG, SOLUONG, DONVITINH) 
+VALUES 
+    ('MH001', N'Sản phẩm A', 'CC001', 'LH001', 100, N'Chiếc'),
+    ('MH002', N'Sản phẩm B', 'CC001', 'LH002', 150, N'Hộp'),
+    ('MH003', N'Sản phẩm C', 'CC002', 'LH001', 200, N'Kg'),
+    ('MH004', N'Sản phẩm D', 'CC002', 'LH003', 300, N'Lít'),
+    ('MH005', N'Sản phẩm E', 'CC003', 'LH002', 250, N'Chiếc'),
+    ('MH006', N'Sản phẩm F', 'CC003', 'LH001', 400, N'Hộp'),
+    ('MH007', N'Sản phẩm G', 'CC004', 'LH003', 500, N'Kg'),
+    ('MH008', N'Sản phẩm H', 'CC004', 'LH002', 600, N'Lít'),
+    ('MH009', N'Sản phẩm I', 'CC005', 'LH001', 700, N'Chiếc'),
+    ('MH010', N'Sản phẩm J', 'CC005', 'LH003', 800, N'Hộp');
+--thêm thông tin vào bảng KHACHHANG
+INSERT INTO KHACHHANG (MAKHACHHANG, TENCONGTY, TENGIAODICH, EMAIL, DIENTHOAI, FAX, MAPX, SONHATENDUONG) 
+VALUES 
+    ('KH001', N'Công ty TNHH ABC', N'ABC Company', 'abccompany@example.com', '0123456789', '012345671', 'PX001', N'123 Trần Hưng Đạo'),
+    ('KH002', N'Công ty CP XYZ', N'XYZ Corporation', 'xyzcompany@example.com', '0987654321', '098765432', 'PX002', N'456 Lê Duẩn'),
+    ('KH003', N'Công ty TNHH Phát Triển', N'Phat Trien Co., Ltd', 'phattrien@example.com', '0912345678', '091234567', 'PX003', N'789 Hà Nội'),
+    ('KH004', N'Công ty Cổ phần 123', N'123 Joint Stock Company', 'jsc@example.com', '0778899000', '077889901', 'PX001', N'101 Tôn Đức Thắng'),
+    ('KH005', N'Công ty TNHH Thế Giới', N'The GIOI LLC', 'thegioillc@example.com', '0712345678', '071234568', 'PX002', N'102 Nguyễn Thị Minh Khai'),
+    ('KH006', N'Công ty Cổ phần 456', N'456 Joint Stock Company', 'kjksc@example.com', '0123456780', '012345679', 'PX003', N'103 Hồ Tùng Mậu'),
+    ('KH007', N'Công ty TNHH Phúc Lộc', N'Phuc Loc LLC', 'phuclocllc@example.com', '0333445566', '033344556', 'PX001', N'104 Phạm Ngọc Thạch'),
+    ('KH008', N'Công ty CP Đầu Tư', N'Dau Tu JSC', 'dautujsc@example.com', '0999888777', '099988877', 'PX004', N'105 Nguyễn Văn Cừ'),
+    ('KH009', N'Công ty TNHH Kinh Doanh', N'Kinh Doanh Co., Ltd', 'kinhdoanh@example.com', '0888776655', '088877665', 'PX005', N'106 Hoàng Diệu'),
+    ('KH010', N'Công ty TNHH Vận Tải', N'Van Tai LLC', 'vantaillc@example.com', '0777666555', '077766655', 'PX002', N'107 Nguyễn Thái Học');
+--thêm dữ liệu vào bảng NHANVIEN
+INSERT INTO NHANVIEN (MANHANVIEN, HO, TEN, NGAYSINH, NGAYLAMVIEC, DIACHI, DIENTHOAI, LUONGCOBAN, PHUCAP) 
+VALUES 
+    ('NV001', N'Nguyễn', N'An', '15/01/1990', '01/01/2023', N'123 Đường ABC, Hà Nội', '0123456789', 50000.00000, 1000.00000),  
+    ('NV002', N'Trần', N'Bình', '20/02/1992', '01/01/2023', N'456 Đường DEF, TP HCM', '0987654321', 60000.00000, 1200.00000),  
+    ('NV003', N'Lê', N'Cường', '10/03/1988', '01/01/2023', N'789 Đường GHI, Đà Nẵng', '0912345678', 55000.00000, 1100.00000),  
+    ('NV004', N'Phạm', N'Duyên', '25/04/1995', '01/01/2023', N'321 Đường JKL, Hải Phòng', '0934567890', 52000.00000, 1050.00000),  
+    ('NV005', N'Vũ', N'Hưng', '30/05/1985', '01/01/2023', N'654 Đường MNO, Nha Trang', '0945678901', 58000.00000, 1150.00000),  
+    ('NV006', N'Đỗ', N'Lan', '15/06/1991', '01/01/2023', N'987 Đường PQR, Huế', '0956789012', 50000.00000, 1000.00000),  
+    ('NV007', N'Hồ', N'Minh', '22/07/1989', '01/01/2023', N'135 Đường STU, Cần Thơ', '0967890123', 60000.00000, 1300.00000),  
+    ('NV008', N'Trương', N'Như', '18/08/1993', '01/01/2023', N'246 Đường VWX, Biên Hòa', '0978901234', 61000.00000, 1250.00000),  
+    ('NV009', N'Tô', N'Việt', '05/09/1987', '01/01/2023', N'357 Đường YZA, Vũng Tàu', '0989012345', 62000.00000, 1350.00000),  
+    ('NV010', N'Ngô', N'Thảo', '12/10/1994', '01/01/2023', N'468 Đường BCD, Quy Nhơn', '0990123456', 53000.00000, 1100.00000);
+--thêm thông tin vào bảng DONDATHANG
+INSERT INTO DONDATHANG (SOHOADON, MAKHACHHANG, MANHANVIEN, NGAYDATHANG, NGAYGIAOHANG, NGAYCHUYENHANG, MAPX) 
+VALUES 
+    ('HD001', 'KH001', 'NV001', GETDATE(), DATEADD(DAY, 4, GETDATE()), DATEADD(DAY, 2, GETDATE()), 'PX001'),
+    ('HD002', 'KH002', 'NV002', GETDATE(), DATEADD(DAY, 4, GETDATE()), DATEADD(DAY, 2, GETDATE()), 'PX002'),
+    ('HD003', 'KH003', 'NV003', GETDATE(), DATEADD(DAY, 4, GETDATE()), DATEADD(DAY, 2, GETDATE()), 'PX003'),
+    ('HD004', 'KH004', 'NV004', GETDATE(), DATEADD(DAY, 4, GETDATE()), DATEADD(DAY, 2, GETDATE()), 'PX004'),
+    ('HD005', 'KH005', 'NV005', GETDATE(), DATEADD(DAY, 4, GETDATE()), DATEADD(DAY, 2, GETDATE()), 'PX005'),
+    ('HD006', 'KH006', 'NV006', GETDATE(), DATEADD(DAY, 4, GETDATE()), DATEADD(DAY, 2, GETDATE()), 'PX006'),
+    ('HD007', 'KH007', 'NV007', GETDATE(), DATEADD(DAY, 4, GETDATE()), DATEADD(DAY, 2, GETDATE()), 'PX007'),
+    ('HD008', 'KH008', 'NV008', GETDATE(), DATEADD(DAY, 4, GETDATE()), DATEADD(DAY, 2, GETDATE()), 'PX008'),
+    ('HD009', 'KH009', 'NV009', GETDATE(), DATEADD(DAY, 4, GETDATE()), DATEADD(DAY, 2, GETDATE()), 'PX009'),
+    ('HD010', 'KH010', 'NV010', GETDATE(), DATEADD(DAY, 4, GETDATE()), DATEADD(DAY, 2, GETDATE()), 'PX010');
+--thêm dữ liệu vào bảng CHITIETDATHANG
+INSERT INTO CHITIETDATHANG (SOHOADON, MAHANG, GIABAN, SOLUONG) 
+VALUES 
+    ('HD001', 'MH001', 100000, 2),
+    ('HD001', 'MH002', 200000, 1),
+    ('HD002', 'MH003', 150000, 3),
+    ('HD002', 'MH004', 300000, 1),
+    ('HD003', 'MH005', 250000, 2),
+    ('HD003', 'MH006', 120000, 4),
+    ('HD004', 'MH007', 180000, 5),
+    ('HD004', 'MH008', 220000, 2),
+    ('HD005', 'MH009', 110000, 1),
+    ('HD005', 'MH010', 330000, 3);
